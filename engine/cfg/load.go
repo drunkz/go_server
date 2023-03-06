@@ -2,34 +2,21 @@ package cfg
 
 import (
 	"fmt"
-	"log"
 
 	"gopkg.in/ini.v1"
 )
 
-func load() {
-	cfg, err := ini.Load("my.ini")
+func Load(filename string) error {
+	cfg, err := ini.Load(filename)
 	if err != nil {
-		log.Fatal("Fail to read file: ", err)
+		fmt.Printf("[%s]文件加载失败，%s\n", filename, err)
+		return err
 	}
-
-	fmt.Println("App Name:", cfg.Section("").Key("app_name").String())
-	fmt.Println("Log Level:", cfg.Section("").Key("log_level").String())
-
-	fmt.Println("MySQL IP:", cfg.Section("mysql").Key("ip").String())
-	mysqlPort, err := cfg.Section("mysql").Key("port").Int()
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("MySQL Port:", mysqlPort)
-	fmt.Println("MySQL User:", cfg.Section("mysql").Key("user").String())
-	fmt.Println("MySQL Password:", cfg.Section("mysql").Key("password").String())
-	fmt.Println("MySQL Database:", cfg.Section("mysql").Key("database").String())
-
-	fmt.Println("Redis IP:", cfg.Section("redis").Key("ip").String())
-	redisPort, err := cfg.Section("redis").Key("port").Int()
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Redis Port:", redisPort)
+	G_BaseConfig.ServerName = cfg.Section("Server").Key("Name").String()
+	G_BaseConfig.ServerAddr = cfg.Section("Server").Key("Addr").String()
+	G_BaseConfig.ServerPort = uint16(cfg.Section("Server").Key("Port").MustUint(7000))
+	G_BaseConfig.LogDir = cfg.Section("Log").Key("Dir").String()
+	G_BaseConfig.LogLevel = int8(cfg.Section("Log").Key("Level").MustInt(0))
+	fmt.Println(G_BaseConfig)
+	return nil
 }
