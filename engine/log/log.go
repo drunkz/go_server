@@ -1,14 +1,13 @@
 package log
 
 import (
+	"dkz.com/engine/cfg"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-var logger *zap.Logger
-
-func Init_Log() {
+func InitLog(cfg cfg.BaseConfig) *zap.Logger {
 	encoderConfig := zap.NewDevelopmentEncoderConfig()
 	encoder := zapcore.NewConsoleEncoder(encoderConfig)
 	writeSyncer := zapcore.AddSync(
@@ -21,5 +20,5 @@ func Init_Log() {
 			LocalTime:  false,
 		})
 	core := zapcore.NewCore(encoder, writeSyncer, zap.InfoLevel)
-	logger = zap.New(core)
+	return zap.New(core)
 }

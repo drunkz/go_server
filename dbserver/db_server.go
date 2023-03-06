@@ -6,18 +6,20 @@ import (
 	"dkz.com/engine"
 )
 
-type DBServer struct {
-	engine.BaseServer
+var G_DBServer *TDBServer
+
+type TDBServer struct {
+	engine.TBaseServer
 }
 
-func (d *DBServer) OnInit() {
+func (d *TDBServer) OnInit() {
 	fmt.Println("OnInit")
 }
 
-func (d *DBServer) OnStart() {
+func (d *TDBServer) OnStart() {
 	fmt.Println("OnStart")
 }
 
-func (d *DBServer) OnClose() {
+func (d *TDBServer) OnClose() {
 	fmt.Println("OnClose")
 }
