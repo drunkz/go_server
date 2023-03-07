@@ -3,6 +3,10 @@ package engine
 import (
 	"fmt"
 	"log"
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"dkz.com/engine/cfg"
 	g "dkz.com/engine/global"
@@ -13,14 +17,14 @@ import (
 const CONFIG_FILE_NAME = "config.ini"
 
 type IBaseServer interface {
-	OnInit()  // 服务未启动初始化时
-	OnStart() // 服务启动后运行时
-	OnClose() // 服务即将关闭时
+	OnStart()
+	OnStop()
 }
 
 type TBaseServer struct {
 	iBaseServer IBaseServer
 	BaseConfig  cfg.BaseConfig
+	Server      net.Listener
 }
 
 func (b *TBaseServer) InitServer(iBaseServer IBaseServer) {
@@ -43,12 +47,38 @@ func (b *TBaseServer) InitServer(iBaseServer IBaseServer) {
 	// 初始化日志
 	g.Log = slog.InitLog(b.BaseConfig)
 	// 初始化网络
-	listener, err := snet.Listen(&b.BaseConfig)
+	b.Server, err = snet.Listen(&b.BaseConfig)
 	if err != nil {
 		g.Log.Fatal(err.Error())
 	}
-	fmt.Println(b.BaseConfig.ServerPort)
-	b.iBaseServer.OnInit()
-	listener.Accept()
 	b.iBaseServer.OnStart()
+	exit := make(chan os.Signal, 2)
+	signal.Notify(exit, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+	go b.serverAccept()
+	<-exit
+	b.iBaseServer.OnStop()
+	b.Server.Close()
+	g.Log.Sync()
+}
+
+func (b *TBaseServer) serverAccept() {
+	for {
+		conn, err := b.Server.Accept()
+		if err != nil {
+			g.Log.Fatal(err.Error())
+		}
+		go processClient(conn)
+	}
+}
+
+func processClient(conn net.Conn) {
+	buffer := make([]byte, 1024)
+	len, err := conn.Read(buffer)
+	if err != nil {
+		g.Log.Error(err.Error())
+		return
+	}
+	fmt.Println("接收: ", string(buffer[:len]))
+	conn.Write(buffer[:len])
+	//conn.Close()
 }

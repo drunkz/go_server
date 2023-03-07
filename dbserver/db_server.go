@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"dkz.com/engine"
 	g "dkz.com/engine/global"
 )
@@ -11,15 +13,10 @@ type TDBServer struct {
 	engine.TBaseServer
 }
 
-func (d *TDBServer) OnInit() {
-	g.Log.Debug("OnInit")
-}
-
 func (d *TDBServer) OnStart() {
-	g.Log.Debug("OnStart")
+	g.Log.Debug(fmt.Sprintf("绑定地址：%s:%d", d.BaseConfig.ServerAddr, d.BaseConfig.ServerPort))
 }
 
-func (d *TDBServer) OnClose() {
-	defer g.Log.Sync()
-	g.Log.Debug("OnClose")
+func (d *TDBServer) OnStop() {
+	g.Log.Debug("OnStop")
 }
