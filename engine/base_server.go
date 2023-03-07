@@ -1,7 +1,9 @@
 package engine
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -52,33 +54,51 @@ func (b *TBaseServer) InitServer(iBaseServer IBaseServer) {
 		g.Log.Fatal(err.Error())
 	}
 	b.iBaseServer.OnStart()
-	exit := make(chan os.Signal, 2)
+	exit := make(chan os.Signal, 1)
 	signal.Notify(exit, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
-	go b.serverAccept()
+	ctx, cancel := context.WithCancel(context.Background())
+	go b.serverAccept(ctx)
 	<-exit
 	b.iBaseServer.OnStop()
+	cancel()
 	b.Server.Close()
 	g.Log.Sync()
 }
 
-func (b *TBaseServer) serverAccept() {
+func (b *TBaseServer) serverAccept(ctx context.Context) {
 	for {
-		conn, err := b.Server.Accept()
-		if err != nil {
-			g.Log.Fatal(err.Error())
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			conn, err := b.Server.Accept()
+			if err != nil {
+				g.Log.Error(err.Error())
+				continue
+			}
+			go b.processClient(ctx, conn)
 		}
-		go processClient(conn)
 	}
 }
 
-func processClient(conn net.Conn) {
+func (b *TBaseServer) processClient(ctx context.Context, conn net.Conn) {
 	buffer := make([]byte, 1024)
-	len, err := conn.Read(buffer)
-	if err != nil {
-		g.Log.Error(err.Error())
-		return
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			len, err := conn.Read(buffer)
+			if err != nil && err != io.EOF {
+				g.Log.Error(err.Error())
+				return
+			}
+			if len == 0 {
+				continue
+			}
+			fmt.Printf("收到：%s\t%s\n", conn.RemoteAddr().String(), string(buffer[:len]))
+			conn.Write(buffer[:len])
+			//conn.Close()
+		}
 	}
-	fmt.Println("接收: ", string(buffer[:len]))
-	conn.Write(buffer[:len])
-	//conn.Close()
 }
