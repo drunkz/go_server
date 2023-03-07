@@ -6,8 +6,8 @@ import (
 	"io"
 	"log"
 	"net"
-	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"dkz.com/engine/cfg"
@@ -54,13 +54,10 @@ func (b *TBaseServer) InitServer(iBaseServer IBaseServer) {
 		g.Log.Fatal(err.Error())
 	}
 	b.iBaseServer.OnStart()
-	exit := make(chan os.Signal, 1)
-	signal.Notify(exit, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 	go b.serverAccept(ctx)
-	<-exit
+	<-ctx.Done()
 	b.iBaseServer.OnStop()
-	cancel()
 	b.Server.Close()
 	g.Log.Sync()
 }
@@ -73,7 +70,9 @@ func (b *TBaseServer) serverAccept(ctx context.Context) {
 		default:
 			conn, err := b.Server.Accept()
 			if err != nil {
-				g.Log.Error(err.Error())
+				if !strings.Contains(err.Error(), "use of closed network connection") {
+					g.Log.Error(err.Error())
+				}
 				continue
 			}
 			go b.processClient(ctx, conn)
@@ -91,7 +90,7 @@ func (b *TBaseServer) processClient(ctx context.Context, conn net.Conn) {
 			len, err := conn.Read(buffer)
 			if err != nil && err != io.EOF {
 				g.Log.Error(err.Error())
-				return
+				continue
 			}
 			if len == 0 {
 				continue
