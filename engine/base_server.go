@@ -1,11 +1,13 @@
 package engine
 
 import (
+	"fmt"
 	"log"
 
 	"dkz.com/engine/cfg"
-	"dkz.com/engine/global"
+	g "dkz.com/engine/global"
 	slog "dkz.com/engine/log"
+	snet "dkz.com/engine/net"
 )
 
 const CONFIG_FILE_NAME = "config.ini"
@@ -39,7 +41,14 @@ func (b *TBaseServer) InitServer(iBaseServer IBaseServer) {
 	b.BaseConfig.LogMaxBackups = uint8(cfg.Section("Log").Key("MaxBackups").MustUint(10))
 	b.BaseConfig.LogCompress = cfg.Section("Server").Key("Compress").MustBool(false)
 	// 初始化日志
-	global.Log = slog.InitLog(b.BaseConfig)
+	g.Log = slog.InitLog(b.BaseConfig)
+	// 初始化网络
+	listener, err := snet.Listen(&b.BaseConfig)
+	if err != nil {
+		g.Log.Fatal(err.Error())
+	}
+	fmt.Println(b.BaseConfig.ServerPort)
 	b.iBaseServer.OnInit()
+	listener.Accept()
 	b.iBaseServer.OnStart()
 }

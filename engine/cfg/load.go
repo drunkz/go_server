@@ -5,9 +5,5 @@ import (
 )
 
 func LoadIni(filename string) (*ini.File, error) {
-	cfg, err := ini.Load(filename)
-	if err != nil {
-		return nil, err
-	}
-	return cfg, nil
+	return ini.Load(filename)
 }
