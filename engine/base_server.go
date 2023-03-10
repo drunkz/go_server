@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os/signal"
+	"runtime"
 	"strings"
 	"syscall"
 
@@ -14,6 +15,7 @@ import (
 	g "dkz.com/engine/global"
 	slog "dkz.com/engine/log"
 	snet "dkz.com/engine/net"
+	"dkz.com/engine/system"
 )
 
 const CONFIG_FILE_NAME = "config.ini"
@@ -34,7 +36,7 @@ func (b *TBaseServer) InitServer(iBaseServer IBaseServer) {
 	// 加载基本配置
 	cfg, err := cfg.LoadIni(CONFIG_FILE_NAME)
 	if err != nil {
-		log.Fatalf("%s\n", err)
+		log.Fatalln(err)
 	}
 	b.BaseConfig.Cfg = cfg
 	b.BaseConfig.ServerName = cfg.Section("Server").Key("Name").MustString("Server")
@@ -48,6 +50,22 @@ func (b *TBaseServer) InitServer(iBaseServer IBaseServer) {
 	b.BaseConfig.LogCompress = cfg.Section("Server").Key("Compress").MustBool(false)
 	// 初始化日志
 	g.Log = slog.InitLog(b.BaseConfig)
+	// Windows 平台设置
+	if runtime.GOOS == "windows" {
+		_, err = system.NewModule(system.Kernel32Dll, "GetConsoleWindow", "SetConsoleTitleW", "GetConsoleMode", "SetConsoleMode")
+		if err != nil {
+			g.Log.Fatal(err.Error())
+		}
+		// 设置控制台窗口标题
+		system.SetTitle(b.BaseConfig.ServerName)
+		_, err = system.NewModule(system.User32Dll, "RemoveMenu")
+		if err != nil {
+			g.Log.Fatal(err.Error())
+		}
+		// 去掉关闭、最大化按钮
+		// 禁止快速编辑模式
+		system.FreeModule()
+	}
 	// 初始化网络
 	b.Server, err = snet.Listen(&b.BaseConfig)
 	if err != nil {
