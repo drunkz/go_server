@@ -3,5 +3,7 @@
         "build.buildFlags": [
             "-tags=debug"
         ]
-    }
+    },
+    "terminal.integrated.cursorStyle": "line",
+    "terminal.integrated.cursorBlinking": true
 }
