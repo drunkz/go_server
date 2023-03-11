@@ -1,4 +1,4 @@
-package cfg
+package config
 
 import "gopkg.in/ini.v1"
 
@@ -12,5 +12,7 @@ type BaseConfig struct {
 	LogMaxAge     uint8  // 最大保留天数
 	LogMaxBackups uint8  // 最大保留数量
 	LogCompress   bool   // 是否压缩保留
-	Cfg           *ini.File
+	Ini           *ini.File
 }
+
+const BASE_CONFIG_FILE = "config.ini"

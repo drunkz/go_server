@@ -5,6 +5,7 @@ import (
 	"syscall"
 	"unsafe"
 
+	"dkz.com/engine/config"
 	"golang.org/x/sys/windows"
 )
 
@@ -123,4 +124,31 @@ func RemoveMenu() error {
 		return err
 	}
 	return nil
+}
+
+func InitPlatform(config *config.BaseConfig) error {
+	var err error
+	if _, err = NewModule(Kernel32Dll, "GetConsoleWindow", "SetConsoleTitleW"); err != nil {
+		return err
+	}
+	// 设置控制台窗口标题
+	if err = SetTitle(config.ServerName); err != nil {
+		return err
+	}
+	if err = InitConsoleHandle(); err != nil {
+		return err
+	}
+	// 禁止快速编辑模式
+	if err = DisableQuickEdit(); err != nil {
+		return err
+	}
+	if _, err = NewModule(User32Dll, "GetSystemMenu", "RemoveMenu"); err != nil {
+		return err
+	}
+	// 移除关闭和最大化按钮
+	if err = RemoveMenu(); err != nil {
+		return err
+	}
+	FreeModule()
+	return err
 }

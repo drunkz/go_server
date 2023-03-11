@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"dkz.com/engine/cfg"
+	"dkz.com/engine/config"
 )
 
-func Listen(config *cfg.BaseConfig) (net.Listener, error) {
+func Listen(config *config.BaseConfig) (net.Listener, error) {
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", config.ServerAddr, config.ServerPort))
 	if err != nil {
 		return nil, err

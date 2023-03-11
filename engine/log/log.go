@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"dkz.com/engine/cfg"
+	"dkz.com/engine/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -12,7 +12,7 @@ import (
 
 const LOGTIMEFORMAT = "2006-01-02 15:04:05.000"
 
-func InitLog(cfg cfg.BaseConfig) *zap.Logger {
+func InitLog(cfg config.BaseConfig) *zap.Logger {
 	encoderConfig := zap.NewDevelopmentEncoderConfig()
 	//encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder	// Windows Cmd环境颜色显示异常
 	encoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
