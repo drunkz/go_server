@@ -62,6 +62,11 @@ func (b *TBaseServer) InitServer(iBaseServer IBaseServer) {
 		if err != nil {
 			g.Log.Fatal(err.Error())
 		}
+		err = system.InitConsoleHandle()
+		if err != nil {
+			g.Log.Fatal(err.Error())
+		}
+		system.DisableQuickEdit()
 		// 去掉关闭、最大化按钮
 		// 禁止快速编辑模式
 		system.FreeModule()

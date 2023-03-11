@@ -1,6 +1,7 @@
 package system
 
 import (
+	"fmt"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -17,6 +18,7 @@ type Module struct {
 }
 
 var modulesMap map[string]*Module
+var consoleHandle uintptr
 
 func NewModule(dllName string, procNames ...string) (*Module, error) {
 	var module *Module = nil
@@ -71,5 +73,26 @@ func SetTitle(title string) error {
 		return err
 	}
 	GetModule(Kernel32Dll).Call("SetConsoleTitleW", uintptr(unsafe.Pointer(lpConsoleTitle)))
+	return nil
+}
+
+func InitConsoleHandle() error {
+	r1, _, err := GetModule(Kernel32Dll).Call("GetConsoleWindow")
+	if err != 0 {
+		return err
+	}
+	consoleHandle = r1
+	fmt.Println(consoleHandle)
+	return nil
+}
+
+func DisableQuickEdit() error {
+	var lpMode uintptr = 0
+	r1, _, err := GetModule(Kernel32Dll).Call("GetConsoleMode", consoleHandle, lpMode)
+	if err != 0 {
+		fmt.Println(err)
+		return err
+	}
+	fmt.Println(r1)
 	return nil
 }
