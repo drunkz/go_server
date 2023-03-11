@@ -1,15 +1,20 @@
 package system
 
 import (
-	"fmt"
 	"strings"
 	"syscall"
 	"unsafe"
+
+	"golang.org/x/sys/windows"
 )
 
 const (
-	Kernel32Dll = "kernel32.dll"
-	User32Dll   = "user32.dll"
+	Kernel32Dll  = "kernel32.dll"
+	User32Dll    = "user32.dll"
+	SC_CLOSE     = 0xF060
+	SC_MAXIMIZE  = 0xF030
+	MF_BYCOMMAND = 0
+	FALSE        = 0
 )
 
 type Module struct {
@@ -18,7 +23,8 @@ type Module struct {
 }
 
 var modulesMap map[string]*Module
-var consoleHandle uintptr
+var windowHandle uintptr
+var stdInputHandle windows.Handle
 
 func NewModule(dllName string, procNames ...string) (*Module, error) {
 	var module *Module = nil
@@ -81,18 +87,40 @@ func InitConsoleHandle() error {
 	if err != 0 {
 		return err
 	}
-	consoleHandle = r1
-	fmt.Println(consoleHandle)
+	windowHandle = r1
+
+	stdHandle, e := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
+	if e != nil {
+		return err
+	}
+	stdInputHandle = stdHandle
 	return nil
 }
 
 func DisableQuickEdit() error {
-	var lpMode uintptr = 0
-	r1, _, err := GetModule(Kernel32Dll).Call("GetConsoleMode", consoleHandle, lpMode)
-	if err != 0 {
-		fmt.Println(err)
+	var mode uint32
+	if err := windows.GetConsoleMode(stdInputHandle, &mode); err != nil {
 		return err
 	}
-	fmt.Println(r1)
+	mode &^= windows.ENABLE_QUICK_EDIT_MODE
+	if err := windows.SetConsoleMode(stdInputHandle, mode); err != nil {
+		return err
+	}
+	return nil
+}
+
+func RemoveMenu() error {
+	r1, _, err := GetModule(User32Dll).Call("GetSystemMenu", windowHandle, FALSE)
+	if err != 0 {
+		return err
+	}
+	_, _, err = GetModule(User32Dll).Call("RemoveMenu", r1, SC_CLOSE, MF_BYCOMMAND)
+	if err != 0 {
+		return err
+	}
+	_, _, err = GetModule(User32Dll).Call("RemoveMenu", r1, SC_MAXIMIZE, MF_BYCOMMAND)
+	if err != 0 {
+		return err
+	}
 	return nil
 }

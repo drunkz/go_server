@@ -14,6 +14,7 @@ import (
 	"dkz.com/engine/cfg"
 	g "dkz.com/engine/global"
 	slog "dkz.com/engine/log"
+	"dkz.com/engine/mode"
 	snet "dkz.com/engine/net"
 	"dkz.com/engine/system"
 )
@@ -32,6 +33,7 @@ type TBaseServer struct {
 }
 
 func (b *TBaseServer) InitServer(iBaseServer IBaseServer) {
+	g.IsDebugMode = mode.IsDebugMode()
 	b.iBaseServer = iBaseServer
 	// 加载基本配置
 	cfg, err := cfg.LoadIni(CONFIG_FILE_NAME)
@@ -51,24 +53,28 @@ func (b *TBaseServer) InitServer(iBaseServer IBaseServer) {
 	// 初始化日志
 	g.Log = slog.InitLog(b.BaseConfig)
 	// Windows 平台设置
-	if runtime.GOOS == "windows" {
-		_, err = system.NewModule(system.Kernel32Dll, "GetConsoleWindow", "SetConsoleTitleW", "GetConsoleMode", "SetConsoleMode")
-		if err != nil {
+	if !g.IsDebugMode && runtime.GOOS == "windows" {
+		if _, err = system.NewModule(system.Kernel32Dll, "GetConsoleWindow", "SetConsoleTitleW"); err != nil {
 			g.Log.Fatal(err.Error())
 		}
 		// 设置控制台窗口标题
-		system.SetTitle(b.BaseConfig.ServerName)
-		_, err = system.NewModule(system.User32Dll, "RemoveMenu")
-		if err != nil {
+		if err = system.SetTitle(b.BaseConfig.ServerName); err != nil {
 			g.Log.Fatal(err.Error())
 		}
-		err = system.InitConsoleHandle()
-		if err != nil {
+		if err = system.InitConsoleHandle(); err != nil {
 			g.Log.Fatal(err.Error())
 		}
-		system.DisableQuickEdit()
-		// 去掉关闭、最大化按钮
 		// 禁止快速编辑模式
+		if err = system.DisableQuickEdit(); err != nil {
+			g.Log.Fatal(err.Error())
+		}
+		if _, err = system.NewModule(system.User32Dll, "GetSystemMenu", "RemoveMenu"); err != nil {
+			g.Log.Fatal(err.Error())
+		}
+		// 移除关闭和最大化按钮
+		if err = system.RemoveMenu(); err != nil {
+			g.Log.Fatal(err.Error())
+		}
 		system.FreeModule()
 	}
 	// 初始化网络
